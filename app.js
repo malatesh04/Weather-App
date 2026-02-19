@@ -8,19 +8,40 @@
 const API_KEY = '2764197b011232ad6571bdd06bb939d0';
 const BASE_URL = 'http://api.weatherstack.com';
 
-/* ---- Proxy helper (handles CORS for browser fetch) ---- */
-/* We use a CORS-anywhere proxy as Weatherstack HTTP doesn't allow
-   direct browser requests from file:// or localhost origins.
-   Production deployments should use a server-side proxy. */
+/* ---- URL Builder ---- */
+/*
+  On Vercel (or any deployed HTTPS origin) → calls our own /api/weather
+  serverless function so requests are made server-side (no CORS, no 403).
+
+  On local file:// or localhost (Python server, etc.) → falls back to
+  corsproxy.io since there is no Node runtime for /api/weather locally.
+*/
 const PROXY = 'https://corsproxy.io/?url=';
 
+function isDeployed() {
+  const proto = window.location.protocol;
+  const host = window.location.hostname;
+  return proto !== 'file:' && host !== 'localhost' && host !== '127.0.0.1';
+}
+
 function buildUrl(endpoint, params) {
-  const url = new URL(`${BASE_URL}/${endpoint}`);
-  url.searchParams.set('access_key', API_KEY);
-  for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
+  if (isDeployed()) {
+    /* ---- Vercel serverless proxy ---- */
+    const url = new URL('/api/weather', window.location.origin);
+    url.searchParams.set('endpoint', endpoint);
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
+    }
+    return url.toString();
+  } else {
+    /* ---- Local CORS proxy fallback ---- */
+    const url = new URL(`${BASE_URL}/${endpoint}`);
+    url.searchParams.set('access_key', API_KEY);
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
+    }
+    return PROXY + encodeURIComponent(url.toString());
   }
-  return PROXY + encodeURIComponent(url.toString());
 }
 
 async function apiFetch(endpoint, params) {
