@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkyPulse — Global Weather Intelligence</title>
+  <meta name="description" content="SkyPulse delivers real-time, historical, and forecast weather data for any location worldwide. Powered by Weatherstack API." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Animated Background -->
+  <div class="bg-canvas">
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+    <div class="bg-particles" id="bgParticles"></div>
+  </div>
+
+  <!-- App Shell -->
+  <div class="app-shell">
+
+    <!-- HEADER / NAV -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="20" cy="20" r="19" stroke="url(#brandGrad)" stroke-width="2"/>
+            <path d="M12 24c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="url(#brandGrad)" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="20" cy="14" r="3" fill="url(#brandGrad)"/>
+            <path d="M8 27h24" stroke="url(#brandGrad)" stroke-width="1.5" stroke-linecap="round"/>
+            <defs>
+              <linearGradient id="brandGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#60a5fa"/>
+                <stop offset="1" stop-color="#a78bfa"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <span class="brand-name">SkyPulse</span>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="search-wrapper" id="searchWrapper">
+        <div class="search-bar">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+            <path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input
+            type="text"
+            id="searchInput"
+            class="search-input"
+            placeholder="Search any city, lat/lon, or zip…"
+            autocomplete="off"
+          />
+          <button class="search-btn" id="searchBtn">Search</button>
+        </div>
+        <!-- Autocomplete Dropdown -->
+        <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
+      </div>
+
+      <!-- Units Toggle -->
+      <div class="units-toggle">
+        <button class="unit-btn active" id="unitMetric" data-unit="m">°C</button>
+        <button class="unit-btn" id="unitFahrenheit" data-unit="f">°F</button>
+      </div>
+    </header>
+
+    <!-- TABS -->
+    <nav class="tab-nav" id="tabNav">
+      <button class="tab-btn active" data-tab="current" id="tabCurrent">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Real-Time
+      </button>
+      <button class="tab-btn" data-tab="historical" id="tabHistorical">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Historical
+      </button>
+      <button class="tab-btn" data-tab="forecast" id="tabForecast">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" stroke="currentColor" stroke-width="2"/></svg>
+        Forecast
+      </button>
+      <button class="tab-btn" data-tab="autocomplete" id="tabAutocomplete">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="9" r="2.5" stroke="currentColor" stroke-width="2"/></svg>
+        Location Lookup
+      </button>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="app-main">
+
+      <!-- =========== CURRENT WEATHER TAB =========== -->
+      <section class="tab-panel active" id="panelCurrent">
+        <div class="panel-loading" id="loadingCurrent">
+          <div class="spinner"></div>
+          <p>Fetching live weather…</p>
+        </div>
+        <div class="panel-error hidden" id="errorCurrent"></div>
+        <div class="current-layout hidden" id="currentContent">
+
+          <!-- Hero Card -->
+          <div class="current-hero glass-card">
+            <div class="current-hero-left">
+              <div class="location-info">
+                <h1 class="city-name" id="curCity">—</h1>
+                <p class="location-meta" id="curMeta">—</p>
+                <p class="local-time" id="curTime">—</p>
+              </div>
+              <div class="temp-block">
+                <img class="weather-icon-xl" id="curIcon" src="" alt="weather" />
+                <div>
+                  <div class="temperature" id="curTemp">—</div>
+                  <div class="weather-desc" id="curDesc">—</div>
+                  <div class="feels-like" id="curFeels">—</div>
+                </div>
+              </div>
+            </div>
+            <div class="current-hero-right">
+              <div class="stats-grid">
+                <div class="stat-item">
+                  <div class="stat-icon">💧</div>
+                  <div class="stat-val" id="curHumidity">—</div>
+                  <div class="stat-lbl">Humidity</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon">💨</div>
+                  <div class="stat-val" id="curWind">—</div>
+                  <div class="stat-lbl">Wind Speed</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon">🌡️</div>
+                  <div class="stat-val" id="curPressure">—</div>
+                  <div class="stat-lbl">Pressure</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon">👁️</div>
+                  <div class="stat-val" id="curVisibility">—</div>
+                  <div class="stat-lbl">Visibility</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon">☀️</div>
+                  <div class="stat-val" id="curUV">—</div>
+                  <div class="stat-lbl">UV Index</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon">☁️</div>
+                  <div class="stat-val" id="curCloud">—</div>
+                  <div class="stat-lbl">Cloud Cover</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon">🌧️</div>
+                  <div class="stat-val" id="curPrecip">—</div>
+                  <div class="stat-lbl">Precipitation</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon">🧭</div>
+                  <div class="stat-val" id="curWindDir">—</div>
+                  <div class="stat-lbl">Wind Dir</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Astro + Air Quality Row -->
+          <div class="sub-cards-row">
+            <div class="glass-card sub-card astro-card">
+              <h3 class="card-title">🌅 Astronomy</h3>
+              <div class="astro-grid">
+                <div class="astro-item"><span class="astro-lbl">Sunrise</span><span class="astro-val" id="curSunrise">—</span></div>
+                <div class="astro-item"><span class="astro-lbl">Sunset</span><span class="astro-val" id="curSunset">—</span></div>
+                <div class="astro-item"><span class="astro-lbl">Moonrise</span><span class="astro-val" id="curMoonrise">—</span></div>
+                <div class="astro-item"><span class="astro-lbl">Moonset</span><span class="astro-val" id="curMoonset">—</span></div>
+                <div class="astro-item"><span class="astro-lbl">Moon Phase</span><span class="astro-val" id="curMoonPhase">—</span></div>
+                <div class="astro-item"><span class="astro-lbl">Illumination</span><span class="astro-val" id="curMoonIllum">—</span></div>
+              </div>
+            </div>
+            <div class="glass-card sub-card aq-card">
+              <h3 class="card-title">🌿 Air Quality</h3>
+              <div class="aq-index-badge" id="aqBadge">—</div>
+              <div class="aq-grid">
+                <div class="aq-item"><span class="aq-lbl">CO</span><span class="aq-val" id="aqCO">—</span></div>
+                <div class="aq-item"><span class="aq-lbl">NO₂</span><span class="aq-val" id="aqNO2">—</span></div>
+                <div class="aq-item"><span class="aq-lbl">O₃</span><span class="aq-val" id="aqO3">—</span></div>
+                <div class="aq-item"><span class="aq-lbl">SO₂</span><span class="aq-val" id="aqSO2">—</span></div>
+                <div class="aq-item"><span class="aq-lbl">PM 2.5</span><span class="aq-val" id="aqPM25">—</span></div>
+                <div class="aq-item"><span class="aq-lbl">PM 10</span><span class="aq-val" id="aqPM10">—</span></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- =========== HISTORICAL WEATHER TAB =========== -->
+      <section class="tab-panel" id="panelHistorical">
+        <div class="query-controls glass-card">
+          <h2 class="control-title">📅 Historical Weather Lookup</h2>
+          <p class="control-sub">Select a location and a past date to retrieve historical weather data (back to July 2008).</p>
+          <div class="control-row">
+            <div class="control-group">
+              <label for="histLocation">Location</label>
+              <input type="text" id="histLocation" class="ctrl-input" placeholder="e.g. London, New York, 40.714,-74.006" />
+            </div>
+            <div class="control-group">
+              <label for="histDate">Date</label>
+              <input type="date" id="histDate" class="ctrl-input" max="" />
+            </div>
+            <div class="control-group">
+              <label for="histHourly">Interval</label>
+              <select id="histHourly" class="ctrl-select">
+                <option value="1">1 Hour</option>
+                <option value="3" selected>3 Hours (default)</option>
+                <option value="6">6 Hours</option>
+                <option value="12">12 Hours (Day/Night)</option>
+                <option value="24">24 Hours (Day avg)</option>
+              </select>
+            </div>
+            <button class="fetch-btn" id="fetchHistBtn">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Fetch Data
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-loading hidden" id="loadingHistorical">
+          <div class="spinner"></div><p>Loading historical data…</p>
+        </div>
+        <div class="panel-error hidden" id="errorHistorical"></div>
+        <div class="historical-content hidden" id="historicalContent">
+          <div class="glass-card hist-summary" id="histSummary"></div>
+          <div class="glass-card" id="histHourlyCard">
+            <h3 class="card-title">⏱ Hourly Breakdown</h3>
+            <div class="hourly-scroll" id="histHourlyScroll"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========== FORECAST TAB =========== -->
+      <section class="tab-panel" id="panelForecast">
+        <div class="query-controls glass-card">
+          <h2 class="control-title">🔭 Weather Forecast</h2>
+          <p class="control-sub">Get up to 7-day forecast with hourly breakdown for any location.</p>
+          <div class="control-row">
+            <div class="control-group">
+              <label for="forecastLocation">Location</label>
+              <input type="text" id="forecastLocation" class="ctrl-input" placeholder="e.g. Tokyo, Paris, Mumbai…" />
+            </div>
+            <div class="control-group">
+              <label for="forecastDays">Days</label>
+              <select id="forecastDays" class="ctrl-select">
+                <option value="1">1 Day</option>
+                <option value="3">3 Days</option>
+                <option value="5">5 Days</option>
+                <option value="7" selected>7 Days</option>
+              </select>
+            </div>
+            <button class="fetch-btn" id="fetchForecastBtn">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Get Forecast
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-loading hidden" id="loadingForecast">
+          <div class="spinner"></div><p>Fetching forecast…</p>
+        </div>
+        <div class="panel-error hidden" id="errorForecast"></div>
+        <div class="forecast-content hidden" id="forecastContent">
+          <div class="forecast-location-bar glass-card" id="forecastLocationBar"></div>
+          <div class="forecast-days-row" id="forecastDaysRow"></div>
+          <div class="glass-card" id="forecastHourlyCard">
+            <h3 class="card-title">⏱ Hourly Detail — <span id="forecastSelectedDay">Select a day above</span></h3>
+            <div class="hourly-scroll" id="forecastHourlyScroll"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========== LOCATION AUTOCOMPLETE TAB =========== -->
+      <section class="tab-panel" id="panelAutocomplete">
+        <div class="query-controls glass-card">
+          <h2 class="control-title">📍 Location Lookup & Autocomplete</h2>
+          <p class="control-sub">Pinpoint exact locations and retrieve their geo-coordinates for use in other lookups.</p>
+          <div class="control-row">
+            <div class="control-group" style="flex:1">
+              <label for="autoInput">Search Location</label>
+              <input type="text" id="autoInput" class="ctrl-input" placeholder="Start typing a city name…" />
+            </div>
+            <button class="fetch-btn" id="fetchAutoBtn">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Search
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-loading hidden" id="loadingAuto">
+          <div class="spinner"></div><p>Searching locations…</p>
+        </div>
+        <div class="panel-error hidden" id="errorAuto"></div>
+        <div class="auto-results hidden" id="autoResults">
+          <div class="auto-results-header">
+            <span id="autoResultsCount">0 results found</span>
+          </div>
+          <div class="location-cards-grid" id="locationCardsGrid"></div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="app-footer">
+      <p>Powered by <a href="https://weatherstack.com" target="_blank" rel="noopener">Weatherstack API</a> — SkyPulse &copy; 2026</p>
+    </footer>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
